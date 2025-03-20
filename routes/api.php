@@ -22,6 +22,9 @@ Route::apiResource('contact', ContactController::class);
 
 Route::apiResource('pro-requests', ProRequestController::class)->only(['index', 'store', 'show']);
 
+Route::patch('/devis/{id}/status', [DemandeDevisController::class, 'updateStatus']);
+
+
 Route::post('pro-requests/{id}/accept', [ProRequestController::class, 'accept'])->name('pro-requests.accept');
 Route::delete('pro-requests/{id}/reject', [ProRequestController::class, 'reject'])->name('pro-requests.reject');
 
