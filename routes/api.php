@@ -9,10 +9,17 @@ use App\Http\Controllers\API\DemandeDevisController;
 use App\Http\Controllers\API\JobController;
 use App\Http\Controllers\API\ProfileController;
 use App\Http\Controllers\API\ProRequestController;
+use App\Http\Controllers\API\UserController;
 
 Route::prefix('auth')->controller(RegisterController::class)->group(function() {
     Route::post('register', 'register')->name('register');
     Route::post('login', 'login')->name('login');
+});
+
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/me', [UserController::class, 'me']);
+    Route::put('/update-profile', [UserController::class, 'updateProfile']);
+    Route::put('/change-password', [UserController::class, 'changePassword']);
 });
 
 Route::apiResource('profiles', ProfileController::class);
