@@ -82,4 +82,20 @@ class DemandeDevisController extends BaseController
 
         return response()->json(['message' => 'Demande supprimée avec succès']);
     }
+
+    public function updateStatus(Request $request, $id)
+{
+    $demande = DemandeDevis::findOrFail($id);
+
+    $validated = $request->validate([
+        'status' => 'required|in:en_attente,en_cours,devis_envoye,accepte,refuse,revision',
+    ]);
+
+    $demande->update(['status' => $validated['status']]);
+
+    return response()->json([
+        'message' => 'Statut mis à jour avec succès',
+        'demande' => $demande
+    ]);
+}
 }
