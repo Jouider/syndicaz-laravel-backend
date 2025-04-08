@@ -2,81 +2,105 @@
 
 namespace App\Http\Controllers\API;
 
-use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use App\Http\Controllers\API\BaseController;
 use App\Models\Blog;
-use App\Http\Resources\BlogResource;
-use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\Validator;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class BlogController extends BaseController
 {
-    // Display a listing of the resource.
-    public function index(): JsonResponse
+    /**
+     * Display a listing of the resource.
+     */
+    public function index()
     {
-        $blogs = Blog::all();
-
-        return $this->sendResponse(BlogResource::collection($blogs), 'Blogs retrieved successfully.');
+        return response()->json(Blog::orderBy('created_at', 'desc')->get());
     }
 
-    // Store a newly created resource in storage.
-    public function store(Request $request): JsonResponse
+    /**
+     * Store a newly created resource in storage.
+     */
+    public function store(Request $request)
     {
-        $input = $request->all();
-
-        $validator = Validator::make($input, [
-            'title' => 'required',
-            'detail' => 'required'
+        $validated = $request->validate([
+            'title'   => 'required|string|max:255',
+            'content' => 'required|string',
+            'image'   => 'nullable|image|max:2048',
         ]);
 
-        if($validator->fails()){
-            return $this->sendError('Validation Error.', $validator->errors());
+        if ($request->hasFile('image')) {
+            $validated['image'] = $request->file('image')->store('blogs', 'public');
         }
 
-        $blog = Blog::create($input);
+        $blog = Blog::create($validated);
 
-        return $this->sendResponse(new BlogResource($blog), 'Blog created successfully.');
+        return response()->json($blog, 201);
     }
 
-    // Display the specified resource.
-    public function show($id): JsonResponse
+    /**
+     * Display the specified resource.
+     */
+    public function show(Blog $blog)
     {
-        $blog = Blog::find($id);
+        return response()->json($blog);
+    }
 
-        if (is_null($blog)) {
-            return $this->sendError('Blog not found.');
+    public function update(Request $request, Blog $blog)
+    {
+        try {
+            $validated = $request->validate([
+                'title'   => 'nullable|string|max:255',
+                'content' => 'nullable|string',
+                'image'   => 'nullable|image|max:2048',
+            ]);
+    
+            if ($request->hasFile('image')) {
+                if ($blog->image) {
+                    Storage::disk('public')->delete($blog->image);
+                }
+                $validated['image'] = $request->file('image')->store('blogs', 'public');
+                $blog->image = $validated['image'];
+            }
+    
+            if ($request->has('title')) {
+                $blog->title = $request->title;
+            }
+    
+            if ($request->has('content')) {
+                $blog->content = $request->content;
+            }
+    
+            $blog->save();
+    
+            return response()->json([
+                'status' => 'succès',
+                'message' => 'Blog mis à jour avec succès',
+                'data' => $blog->fresh()
+            ], 200);
+    
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'status' => 'erreur',
+                'message' => 'Erreur de validation',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'erreur',
+                'message' => 'Une erreur est survenue lors de la mise à jour du blog',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+    
+    // Supprimer un blog
+    public function destroy(Blog $blog)
+    {
+        if ($blog->image) {
+            Storage::disk('public')->delete($blog->image);
         }
 
-        return $this->sendResponse(new BlogResource($blog), 'Blog retrieved successfully.');
-    }
-
-    // Update the specified resource in storage.
-    public function update(Request $request, Blog $blog): JsonResponse
-    {
-        $input = $request->all();
-
-        $validator = Validator::make($input, [
-            'title' => 'required',
-            'detail' => 'required'
-        ]);
-
-        if($validator->fails()){
-            return $this->sendError('Validation Error.', $validator->errors());
-        }
-
-        $blog->title = $input['title'];
-        $blog->detail = $input['detail'];
-        $blog->save();
-
-        return $this->sendResponse(new BlogResource($blog), 'Blog updated successfully.');
-    }
-
-    // Remove the specified resource from storage.
-    public function destroy(Blog $blog): JsonResponse
-    {
         $blog->delete();
 
-        return $this->sendResponse([], 'Blog deleted successfully.');
+        return response()->json(['message' => 'Blog deleted successfully']);
     }
 }
