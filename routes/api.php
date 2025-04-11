@@ -1,9 +1,9 @@
 <?php
 
+use App\Http\Controllers\API\BlogController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\API\RegisterController;
-use App\Http\Controllers\API\BlogController;
 use App\Http\Controllers\API\ContactController;
 use App\Http\Controllers\API\DemandeDevisController;
 use App\Http\Controllers\API\JobController;
@@ -36,8 +36,18 @@ Route::post('pro-requests/{id}/accept', [ProRequestController::class, 'accept'])
 Route::delete('pro-requests/{id}/reject', [ProRequestController::class, 'reject'])->name('pro-requests.reject');
 
 Route::middleware('auth:sanctum')->group( function () {
-    Route::apiResource('blogs', BlogController::class);
     Route::get('user', function (Request $request) {
         return $request->user();
     })->name('user'); 
 });
+
+// Route publique (accessible sans authentification)
+Route::get('blogs', [BlogController::class, 'index']);
+Route::get('blogs/{blog}', [BlogController::class, 'show']); // Optionnel si tu veux show public aussi
+
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('blogs', [BlogController::class, 'store']);
+    Route::put('blogs/{blog}', [BlogController::class, 'update']);
+    Route::delete('blogs/{blog}', [BlogController::class, 'destroy']);
+});
+
