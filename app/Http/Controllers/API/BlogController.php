@@ -58,19 +58,10 @@ class BlogController extends BaseController
                     Storage::disk('public')->delete($blog->image);
                 }
                 $validated['image'] = $request->file('image')->store('blogs', 'public');
-                $blog->image = $validated['image'];
             }
     
-            if ($request->has('title')) {
-                $blog->title = $request->title;
-            }
-    
-            if ($request->has('content')) {
-                $blog->content = $request->content;
-            }
-    
-            $blog->save();
-    
+            $blog->update($validated);
+            
             return response()->json([
                 'status' => 'succès',
                 'message' => 'Blog mis à jour avec succès',
